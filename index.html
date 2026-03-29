@@ -224,13 +224,38 @@ function setRing(id,state,progress){
   el.style.transition=state==='active'?'stroke-dashoffset 1s linear,opacity .5s,filter .5s':'stroke-dashoffset .4s ease,opacity .5s,filter .5s';
   el.style.strokeDashoffset=r.c*(1-(progress||0));
 }
+function setRing(id,state,progress,instant){
+  var r=RINGS[id];
+  var el=document.getElementById(r.elId);
+  if(!el)return;
+  el.className='ra '+id+' s-'+state;
+  if(instant){
+    el.style.transition='none';
+    el.style.strokeDashoffset=r.c*(1-(progress||0));
+    // force reflow so next transition applies
+    el.getBoundingClientRect();
+  } else {
+    el.style.transition=state==='active'?'stroke-dashoffset 0.9s linear,opacity .5s,filter .5s':'stroke-dashoffset .4s ease,opacity .5s,filter .5s';
+    el.style.strokeDashoffset=r.c*(1-(progress||0));
+  }
+}
 function updateRings(activeId,progress){
   var order=['inhale','hold','exhale'];
   var ai=order.indexOf(activeId);
   order.forEach(function(id,i){
-    if(i<ai)       setRing(id,'spent',0);      // already consumed → empty dim
-    else if(i===ai) setRing(id,'active',progress); // counting down
-    else            setRing(id,'ready',1);     // waiting → full bright
+    if(i<ai)       setRing(id,'spent',0,false);
+    else if(i===ai) setRing(id,'active',progress,false);
+    else            setRing(id,'ready',1,false);
+  });
+}
+// called once at start of each phase — active ring shows instantly full, others ready
+function initPhaseRings(activeId){
+  var order=['inhale','hold','exhale'];
+  var ai=order.indexOf(activeId);
+  order.forEach(function(id,i){
+    if(i<ai)       setRing(id,'spent',0,false);
+    else if(i===ai) setRing(id,'active',1,true); // instant full
+    else            setRing(id,'ready',1,true);  // instant full
   });
 }
 // set all rings full & bright (start of each cycle)
@@ -283,8 +308,8 @@ function applyPhase(phase){
   ct.style.color=phase.cls==='pi'?'#7fc8e8':phase.cls==='ph'?'#a78bfa':'#6ee7b7';
   document.getElementById('center').classList.remove('idle');
   document.getElementById('glowBg').style.background=phase.id==='inhale'?'radial-gradient(circle,rgba(127,200,232,.2) 0%,transparent 70%)':phase.id==='hold'?'radial-gradient(circle,rgba(167,139,250,.2) 0%,transparent 70%)':'radial-gradient(circle,rgba(110,231,183,.18) 0%,transparent 70%)';
-  // mark rings: active one full, later ones ready (full), earlier ones spent (empty)
-  updateRings(phase.id,1);
+  // Active ring instantly full, upcoming rings instantly full, previous rings empty
+  initPhaseRings(phase.id);
   renderCards(phase,true);
 }
 function runPhase(){
@@ -408,4 +433,3 @@ document.getElementById('stepCards').innerHTML=idleCard();
 </script>
 </body>
 </html>
-<!-- v1.1 -->
