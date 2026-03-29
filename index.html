@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thở Bụng</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--night:#0b0f1a;--glow:#7fc8e8;--glow2:#a78bfa;--glow3:#6ee7b7;--text:#e2e8f0;--muted:#94a3b8}
+body{background:var(--night);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+body.t-forest{background:radial-gradient(ellipse at 60% 30%,#0a1a10 0%,#080d0f 60%)}
+body.t-dusk{background:radial-gradient(ellipse at 50% 20%,#1a0d1f 0%,#0d0b18 60%)}
+body.t-ocean{background:radial-gradient(ellipse at 30% 60%,#061828 0%,#070b15 60%)}
+body.t-ember{background:radial-gradient(ellipse at 70% 50%,#1f0d0a 0%,#120b0b 60%)}
+body.t-aurora{background:radial-gradient(ellipse at 20% 40%,#0d1f2d 0%,#0b0f1a 60%)}
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(1px 1px at 10% 20%,rgba(255,255,255,.6) 0%,transparent 100%),radial-gradient(1px 1px at 30% 55%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 55% 10%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 70% 40%,rgba(255,255,255,.35) 0%,transparent 100%),radial-gradient(1px 1px at 85% 70%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 15% 80%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 50% 90%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 90% 15%,rgba(255,255,255,.5) 0%,transparent 100%),radial-gradient(1px 1px at 25% 35%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 65% 65%,rgba(255,255,255,.4) 0%,transparent 100%),radial-gradient(1px 1px at 40% 75%,rgba(255,255,255,.3) 0%,transparent 100%),radial-gradient(1px 1px at 78% 88%,rgba(255,255,255,.4) 0%,transparent 100%)}
+.container{position:relative;z-index:1;width:100%;max-width:480px;padding:8px 20px 40px;display:flex;flex-direction:column;align-items:center}
+header{text-align:center;margin-bottom:4px}
+.title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8vw,3rem);font-weight:300;letter-spacing:.05em;line-height:1.1;background:linear-gradient(135deg,var(--glow),var(--glow2),var(--glow3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{font-size:.75rem;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-top:3px}
+.session-bar{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 2px;min-height:28px}
+.timer-wrap{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:5px 14px;opacity:0;transition:opacity .4s;pointer-events:none}
+.timer-wrap.show{opacity:1;pointer-events:all}
+.timer-icon{font-size:.72rem;color:var(--muted)}
+.timer-val{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:300;letter-spacing:.08em;color:var(--text);min-width:42px;text-align:center}
+.timer-lbl{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.motivate{font-size:.72rem;color:var(--glow2);background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.18);border-radius:20px;padding:5px 12px;text-align:center;opacity:0;transition:opacity .7s;max-width:280px;line-height:1.4;margin-bottom:2px;min-height:24px}
+.motivate.show{opacity:1}
+.arena{position:relative;width:280px;height:280px;margin:4px 0 8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.glow-bg{position:absolute;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(127,200,232,.07) 0%,transparent 70%);transition:background .6s;pointer-events:none}
+.rings-svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.rt{fill:none;stroke-linecap:round}
+.ra{fill:none;stroke-linecap:round;transition:stroke-dashoffset 1s linear,opacity .5s,filter .5s}
+.ra.inhale{stroke:#4db8e8}.ra.hold{stroke:#9b6bfa}.ra.exhale{stroke:#3dd9a4}
+.ra.s-active{filter:drop-shadow(0 0 12px currentColor);opacity:1}
+.ra.s-ready{opacity:.75}
+.ra.s-spent{opacity:.1;transition:stroke-dashoffset .6s ease,opacity .5s,filter .5s}
+.ra.s-idle{opacity:.13}
+.ra.s-done{opacity:.45}
+.rl{font-size:9px;font-family:'DM Sans',sans-serif;letter-spacing:1px;dominant-baseline:middle;text-anchor:middle;transition:opacity .5s}
+.rl.l-active{opacity:1}.rl.l-idle{opacity:.25}
+.center{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center}
+.ctime{font-family:'Cormorant Garamond',serif;font-size:3.2rem;font-weight:300;color:#fff;line-height:1;text-shadow:0 0 24px rgba(255,255,255,.3);transition:color .4s}
+.ctag{font-size:.58rem;letter-spacing:.16em;color:rgba(255,255,255,.5);text-transform:uppercase}
+@keyframes idle-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.center.idle{animation:idle-float 3.5s ease-in-out infinite}
+.phase-disp{text-align:center;min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;margin-bottom:12px}
+.phase-name{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:400;letter-spacing:.04em;transition:color .4s}
+.phase-tip{font-size:.75rem;color:var(--muted);max-width:290px;line-height:1.5}
+.pi{color:var(--glow)}.ph{color:var(--glow2)}.pe{color:var(--glow3)}.pm{color:var(--muted)}
+.step-cards{width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.cur-card{width:100%;border-radius:16px;padding:14px 16px;border:1px solid rgba(127,200,232,.28);background:rgba(127,200,232,.05);animation:cardIn .4s ease}
+.cur-card.h{border-color:rgba(167,139,250,.32);background:rgba(167,139,250,.06)}
+.cur-card.e{border-color:rgba(110,231,183,.28);background:rgba(110,231,183,.05)}
+.cur-card.idle-c{border-color:rgba(255,255,255,.06);background:rgba(255,255,255,.02);opacity:.55}
+@keyframes cardIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.cbadge{min-width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:1rem;background:rgba(127,200,232,.14);color:var(--glow);border:1px solid rgba(127,200,232,.22)}
+.cbadge.h{background:rgba(167,139,250,.14);color:var(--glow2);border-color:rgba(167,139,250,.28)}
+.cbadge.e{background:rgba(110,231,183,.14);color:var(--glow3);border-color:rgba(110,231,183,.22)}
+.cbadge.idle-b{background:rgba(255,255,255,.05);color:var(--muted);border-color:rgba(255,255,255,.1)}
+.ctitle{font-size:.88rem;font-weight:400;color:var(--text)}
+.cnow{font-size:.63rem;letter-spacing:.13em;text-transform:uppercase;color:var(--glow);background:rgba(127,200,232,.1);padding:2px 7px;border-radius:20px;margin-left:auto;white-space:nowrap}
+.cnow.h{color:var(--glow2);background:rgba(167,139,250,.1)}.cnow.e{color:var(--glow3);background:rgba(110,231,183,.1)}
+.cbullets{list-style:none;display:flex;flex-direction:column;gap:6px}
+.cbullets li{display:flex;gap:8px;align-items:flex-start;font-size:.76rem;color:#cbd5e1;line-height:1.5}
+.cbullets li::before{content:'>';color:var(--glow);font-size:.95rem;line-height:1.3;flex-shrink:0}
+.cur-card.h .cbullets li::before{color:var(--glow2)}.cur-card.e .cbullets li::before{color:var(--glow3)}
+.next-card{width:100%;border-radius:12px;padding:10px 14px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);display:flex;align-items:center;gap:10px;opacity:.72}
+.next-lbl{font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);flex-shrink:0}
+.next-arr{color:rgba(255,255,255,.2);font-size:.8rem;flex-shrink:0}
+.nbadge{min-width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:.9rem}
+.nbadge.i{background:rgba(127,200,232,.1);color:var(--glow);border:1px solid rgba(127,200,232,.2)}
+.nbadge.h{background:rgba(167,139,250,.1);color:var(--glow2);border:1px solid rgba(167,139,250,.2)}
+.nbadge.e{background:rgba(110,231,183,.1);color:var(--glow3);border:1px solid rgba(110,231,183,.2)}
+.next-txt{font-size:.75rem;color:var(--muted);line-height:1.4}
+.cycle-row{display:flex;gap:8px;margin-bottom:20px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;border:1px solid rgba(127,200,232,.3);transition:background .4s,border-color .4s,transform .3s}
+.dot.done{background:var(--glow3);border-color:var(--glow3);transform:scale(1.2);box-shadow:0 0 8px rgba(110,231,183,.5)}
+.dot.active{background:rgba(127,200,232,.3);border-color:var(--glow);animation:dp 1.2s ease-in-out infinite}
+@keyframes dp{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+.dot-lbl{font-size:.7rem;color:var(--muted);letter-spacing:.1em;margin-left:4px}
+.controls{display:flex;gap:12px;margin-bottom:20px}
+.btn{padding:12px 28px;border-radius:40px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;letter-spacing:.07em;transition:all .25s}
+.btn-p{background:linear-gradient(135deg,rgba(127,200,232,.25),rgba(110,231,183,.2));color:var(--text);border:1px solid rgba(127,200,232,.35);box-shadow:0 4px 20px rgba(127,200,232,.1)}
+.btn-p:hover{background:linear-gradient(135deg,rgba(127,200,232,.35),rgba(110,231,183,.3));transform:translateY(-1px)}
+.btn-s{background:rgba(255,255,255,.04);color:var(--muted);border:1px solid rgba(255,255,255,.08)}
+.btn-s:hover{background:rgba(255,255,255,.08);color:var(--text);transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.97)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.setting-area{width:100%;display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.row{display:flex;align-items:center;gap:12px}
+.row-lbl{font-size:.72rem;color:var(--muted);letter-spacing:.1em;white-space:nowrap}
+.tech-wrap{position:relative;flex:1}
+.tech-sel{width:100%;appearance:none;-webkit-appearance:none;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;padding:10px 36px 10px 14px;cursor:pointer;outline:none;transition:border-color .25s,background .25s}
+.tech-sel:hover{border-color:rgba(127,200,232,.35);background:rgba(127,200,232,.05)}
+.tech-sel option{background:#1a2035;color:var(--text)}
+.tech-arr{position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);font-size:.8rem}
+.cnt-ctrl{display:flex;align-items:center;gap:8px}
+.cnt-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:var(--text);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.cnt-btn:hover{background:rgba(255,255,255,.12)}
+.cnt-val{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;color:var(--text);min-width:22px;text-align:center}
+.completion{display:none;text-align:center;padding:18px;width:100%;animation:fadeIn .6s ease}
+.completion.show{display:flex;flex-direction:column;align-items:center;gap:10px}
+.comp-icon{font-size:2.6rem}
+.comp-title{font-family:'Cormorant Garamond',serif;font-size:1.65rem;color:var(--glow3);font-weight:300;letter-spacing:.05em}
+.comp-time{font-family:'Cormorant Garamond',serif;font-size:1.05rem;color:var(--glow);letter-spacing:.1em;background:rgba(127,200,232,.08);border:1px solid rgba(127,200,232,.18);border-radius:20px;padding:6px 18px}
+.comp-sub{font-size:.78rem;color:var(--muted);line-height:1.6}
+.comp-quote{font-size:.8rem;color:var(--glow2);font-style:italic;max-width:280px;line-height:1.55;border-left:2px solid rgba(167,139,250,.3);padding-left:12px;text-align:left}
+.fab{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:100;width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,rgba(127,200,232,.28),rgba(167,139,250,.28));border:1px solid rgba(127,200,232,.4);color:#fff;font-size:1.4rem;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(0,0,0,.4),0 0 18px rgba(127,200,232,.12);opacity:0;pointer-events:none;transition:all .3s;backdrop-filter:blur(8px)}
+.fab.show{opacity:1;pointer-events:all}.fab:hover{transform:translateX(-50%) scale(1.1)}.fab:active{transform:translateX(-50%) scale(.95)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<button class="fab" id="fab">&#9208;</button>
+<div class="container">
+  <header>
+    <div class="title">Thở Bụng</div>
+    <div class="subtitle" id="subtitle">Kỹ thuật 4 · 7 · 8</div>
+  </header>
+  <div class="session-bar">
+    <div class="timer-wrap" id="timerWrap">
+      <span class="timer-icon">&#9203;</span>
+      <span class="timer-val" id="timerVal">0:00</span>
+      <span class="timer-lbl">tổng thời gian</span>
+    </div>
+  </div>
+  <div class="motivate" id="motivate"></div>
+  <div class="arena">
+    <div class="glow-bg" id="glowBg"></div>
+    <svg class="rings-svg" viewBox="0 0 280 280">
+      <circle class="rt" cx="140" cy="140" r="126" stroke="rgba(127,200,232,0.18)"  stroke-width="10"/>
+      <circle class="rt" cx="140" cy="140" r="96"  stroke="rgba(167,139,250,0.18)"  stroke-width="10"/>
+      <circle class="rt" cx="140" cy="140" r="64"  stroke="rgba(110,231,183,0.18)"  stroke-width="10"/>
+      <circle id="rInhale" class="ra inhale s-idle" cx="140" cy="140" r="126" stroke-width="10" stroke-dasharray="791.7" stroke-dashoffset="791.7"/>
+      <circle id="rHold"   class="ra hold   s-idle" cx="140" cy="140" r="96"  stroke-width="10" stroke-dasharray="603.2" stroke-dashoffset="603.2"/>
+      <circle id="rExhale" class="ra exhale s-idle" cx="140" cy="140" r="64"  stroke-width="10" stroke-dasharray="402.1" stroke-dashoffset="402.1"/>
+    </svg>
+    <div class="center idle" id="center">
+      <div class="ctime" id="ctime">&#8212;</div>
+      <div class="ctag"  id="ctag">sẵn sàng</div>
+    </div>
+  </div>
+  <div class="phase-disp">
+    <div class="phase-name pm" id="pname">Nhấn bắt đầu</div>
+    <div class="phase-tip"    id="ptip">Ngồi hoặc nằm thoải mái, lưng thẳng, thả lỏng vai</div>
+  </div>
+  <div class="step-cards" id="stepCards"></div>
+  <div class="cycle-row" id="dots"></div>
+  <div class="controls">
+    <button class="btn btn-p" id="startBtn" onclick="toggle()">&#9654; Bắt đầu</button>
+    <button class="btn btn-s" id="resetBtn" onclick="doReset()" disabled>&#8635; Đặt lại</button>
+  </div>
+  <div class="setting-area">
+    <div class="row">
+      <span class="row-lbl">KỸ THUẬT</span>
+      <div class="tech-wrap">
+        <select class="tech-sel" id="techSel" onchange="changeTech(this.value)">
+          <option value="478">4 – 7 – 8 &nbsp; Tiêu chuẩn</option>
+          <option value="426">4 – 2 – 6 &nbsp; Nhẹ nhàng (COPD)</option>
+        </select>
+        <div class="tech-arr">&#9660;</div>
+      </div>
+    </div>
+    <div class="row">
+      <span class="row-lbl">SỐ CHU KỲ</span>
+      <div class="cnt-ctrl">
+        <button class="cnt-btn" onclick="chgCycles(-1)">&#8722;</button>
+        <div class="cnt-val" id="cntVal">4</div>
+        <button class="cnt-btn" onclick="chgCycles(1)">+</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="row-lbl">NGHỈ GIỮA (giây)</span>
+      <div class="cnt-ctrl">
+        <button class="cnt-btn" onclick="chgWait(-1)">&#8722;</button>
+        <div class="cnt-val" id="waitVal">4</div>
+        <button class="cnt-btn" onclick="chgWait(1)">+</button>
+      </div>
+    </div>
+  </div>
+  <div class="completion" id="compMsg">
+    <div class="comp-icon"  id="compIcon">🌙</div>
+    <div class="comp-title" id="compTitle">Tuyệt vời!</div>
+    <div class="comp-time"  id="compTime"></div>
+    <div class="comp-sub">Cảm nhận sự thư giãn lan toả khắp cơ thể.</div>
+    <div class="comp-quote" id="compQuote"></div>
+  </div>
+</div>
+<script>
+var THEMES=['t-aurora','t-forest','t-dusk','t-ocean','t-ember'];
+var MOTIVATES=['Mỗi hơi thở là một lần bạn chăm sóc chính mình','Cơ thể bạn đang được nuôi dưỡng từ bên trong','Để hơi thở dẫn bạn về hiện tại','Bạn đang làm điều tốt nhất cho phổi và tim','Thư giãn sâu là liều thuốc tự nhiên tốt nhất','Kiên trì mỗi ngày, cơ thể sẽ cảm ơn bạn','Hít vào bình yên, thở ra lo âu','Tâm trí tĩnh lặng bắt đầu từ hơi thở','Bạn đang tiến bộ mỗi chu kỳ','Nhịp thở của bạn là hoàn hảo'];
+var QUOTES=['Một hơi thở sâu có thể thay đổi toàn bộ ngày của bạn.','Hơi thở là cầu nối giữa tâm trí và cơ thể.','Bạn vừa tặng cho cơ thể một món quà vô giá — sự bình yên.','Thở đúng cách là nền tảng của mọi sức khoẻ.','Mỗi buổi tập là một bước nhỏ nhưng ý nghĩa.','Phổi khoẻ, tim khoẻ — hãy tiếp tục duy trì thói quen này.','Bình tĩnh là kết quả của hơi thở có chủ đích.'];
+var COMP_ICONS=['🌙','🌿','✨','🌊','🍃','💙','⭐'];
+var COMP_TITLES=['Tuyệt vời!','Hoàn hảo!','Xuất sắc!','Cảm ơn bạn!','Giỏi lắm!'];
+var TECH={
+  '478':{subtitle:'Kỹ thuật 4 · 7 · 8',phases:[
+    {id:'inhale',label:'Hít vào bằng mũi',dur:4,cls:'pi',ac:'i',tip:'Chỉ bụng phồng lên — ngực giữ nguyên',bullets:['Mím môi lại, hít vào chậm qua mũi','Chỉ bụng phồng lên — đặt tay lên bụng để cảm nhận','Ngực gần như không di chuyển','Đếm thầm 1–2–3–4, nhịp nhàng, không gồng'],nLabel:'Giữ hơi 7 giây',nHint:'Nín thở, toàn thân thả lỏng',nAc:'h'},
+    {id:'hold',  label:'Giữ hơi',         dur:7,cls:'ph',ac:'h',tip:'Nín thở — toàn thân thả lỏng',bullets:['Nín thở hoàn toàn, không cần gồng cơ','Bụng nhẹ nhàng cứng, vai và hàm thả lỏng','Đếm thầm 1–2–3–4–5–6–7','Nếu khó chịu, bắt đầu với 4–5s rồi tăng dần'],nLabel:'Thở ra 8 giây',nHint:'Môi hơi hé, tạo tiếng "vù" nhẹ',nAc:'e'},
+    {id:'exhale',label:'Thở ra từ từ',    dur:8,cls:'pe',ac:'e',tip:'Môi hơi hé — tiếng "vù" nhẹ, bụng xẹp dần',bullets:['Hé môi nhẹ, thở ra bằng miệng','Tạo tiếng "vù" khẽ khi hơi thoát ra','Bụng xẹp xuống dần, đếm 1–2–…–8','Cố kéo dài hết khả năng — đây là bước quan trọng nhất'],nLabel:'Hít vào 4 giây',nHint:'Mím môi, bụng phồng lên',nAc:'i'}
+  ]},
+  '426':{subtitle:'Kỹ thuật 4 · 2 · 6',phases:[
+    {id:'inhale',label:'Hít vào bằng mũi',dur:4,cls:'pi',ac:'i',tip:'Bụng phồng nhẹ — không cần căng',bullets:['Mím môi, hít vào qua mũi thật chậm','Chỉ bụng phồng lên — đặt tay lên bụng để cảm nhận','Ngực gần như không di chuyển','Đếm thầm 1–2–3–4, thư giãn'],nLabel:'Giữ hơi 2 giây',nHint:'Nín thở ngắn, nhẹ nhàng',nAc:'h'},
+    {id:'hold',  label:'Giữ hơi nhẹ',     dur:2,cls:'ph',ac:'h',tip:'Nín thở ngắn — không cần gồng',bullets:['Nín thở nhẹ, chỉ 2 giây — rất ngắn','Không gồng bụng, toàn thân thả lỏng','Phù hợp nếu bạn khó giữ hơi lâu (COPD)','Đếm thầm 1–2'],nLabel:'Thở ra 6 giây',nHint:'Môi hơi hé, bụng xẹp từ từ',nAc:'e'},
+    {id:'exhale',label:'Thở ra từ từ',    dur:6,cls:'pe',ac:'e',tip:'Thở ra nhẹ nhàng, bụng xẹp từ từ',bullets:['Hé môi nhẹ, thở ra từ từ bằng miệng','Tạo tiếng "vù" khẽ hoặc thở ra êm nhẹ','Bụng xẹp xuống dần, đếm 1–2–…–6','Thở ra dài hơn hít vào giúp phổi thư giãn sâu hơn'],nLabel:'Hít vào 4 giây',nHint:'Mím môi, bụng phồng lên',nAc:'i'}
+  ]}
+};
+var RINGS={inhale:{elId:'rInhale',c:791.7},hold:{elId:'rHold',c:603.2},exhale:{elId:'rExhale',c:402.1}};
+var techKey='478',phases=TECH['478'].phases,totalCycles=4,waitSecs=4,cycle=0,phaseIdx=0,secsLeft=0,running=false,ticker=null;
+var sessStart=null,sessAcc=0,sessTick=null,motiveTick=null,motiveArr=[],motiveIdx=0;
+
+function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+function fmtT(s){return Math.floor(s/60)+':'+((''+s%60).length<2?'0':'')+s%60}
+function totalSecs(){return sessAcc+(sessStart?Math.floor((Date.now()-sessStart)/1000):0)}
+function applyTheme(){THEMES.forEach(function(t){document.body.classList.remove(t)});document.body.classList.add(rnd(THEMES))}
+
+function setRing(id,state,progress){
+  var r=RINGS[id];
+  var el=document.getElementById(r.elId);
+  if(!el)return;
+  el.className='ra '+id+' s-'+state;
+  el.style.transition=state==='active'?'stroke-dashoffset 1s linear,opacity .5s,filter .5s':'stroke-dashoffset .4s ease,opacity .5s,filter .5s';
+  el.style.strokeDashoffset=r.c*(1-(progress||0));
+}
+function updateRings(activeId,progress){
+  var order=['inhale','hold','exhale'];
+  var ai=order.indexOf(activeId);
+  order.forEach(function(id,i){
+    if(i<ai)       setRing(id,'spent',0);      // already consumed → empty dim
+    else if(i===ai) setRing(id,'active',progress); // counting down
+    else            setRing(id,'ready',1);     // waiting → full bright
+  });
+}
+// set all rings full & bright (start of each cycle)
+function initCycleRings(){
+  ['inhale','hold','exhale'].forEach(function(id){setRing(id,'ready',1)});
+}
+function resetRings(){['inhale','hold','exhale'].forEach(function(id){setRing(id,'idle',0)})}
+function allDone(){['inhale','hold','exhale'].forEach(function(id){setRing(id,'done',1)})}
+
+function startClock(){
+  sessStart=Date.now();clearInterval(sessTick);
+  sessTick=setInterval(function(){document.getElementById('timerVal').textContent=fmtT(totalSecs())},500);
+}
+function pauseClock(){if(sessStart){sessAcc+=Math.floor((Date.now()-sessStart)/1000);sessStart=null}clearInterval(sessTick)}
+function resetClock(){pauseClock();sessAcc=0;document.getElementById('timerVal').textContent='0:00';document.getElementById('timerWrap').classList.remove('show')}
+
+function startMotivate(){
+  motiveArr=MOTIVATES.slice().sort(function(){return Math.random()-.5});motiveIdx=0;showMotiv(motiveArr[0]);clearInterval(motiveTick);
+  motiveTick=setInterval(function(){var el=document.getElementById('motivate');el.classList.remove('show');setTimeout(function(){motiveIdx=(motiveIdx+1)%motiveArr.length;showMotiv(motiveArr[motiveIdx])},600)},11000);
+}
+function showMotiv(msg){var el=document.getElementById('motivate');el.textContent=msg;setTimeout(function(){el.classList.add('show')},60)}
+function stopMotivate(){clearInterval(motiveTick);document.getElementById('motivate').classList.remove('show')}
+
+function buildDots(){
+  var el=document.getElementById('dots');el.innerHTML='';
+  for(var i=0;i<totalCycles;i++){var d=document.createElement('div');d.className='dot';d.id='d'+i;el.appendChild(d)}
+  var l=document.createElement('div');l.className='dot-lbl';l.textContent='CHU KỲ';el.appendChild(l);
+}
+function syncDots(){
+  for(var i=0;i<totalCycles;i++){var d=document.getElementById('d'+i);if(!d)continue;d.className='dot';if(i<cycle)d.classList.add('done');else if(i===cycle&&running)d.classList.add('active')}
+}
+
+function idleCard(){return '<div class="cur-card idle-c"><div class="card-hdr"><div class="cbadge idle-b">?</div><div class="ctitle" style="color:var(--muted)">Chuẩn bị</div></div><ul class="cbullets" style="color:#64748b"><li>Nằm hoặc ngồi thoải mái, lưng thẳng</li><li>Thả lỏng vai, hàm và hai tay</li><li>Thở ra nhẹ một lần để bắt đầu</li></ul></div>'}
+function renderCards(phase,isRunning){
+  var el=document.getElementById('stepCards');
+  if(!isRunning){el.innerHTML=idleCard();return}
+  var np=phases[(phaseIdx+1)%phases.length];
+  var isLast=(phaseIdx===phases.length-1)&&(cycle>=totalCycles-1);
+  var c=phase.ac;
+  var cc=c==='h'?' h':c==='e'?' e':'';
+  var nextHtml=isLast?'':'<div class="next-card"><div class="next-lbl">Sắp tới</div><div class="next-arr">&rsaquo;</div><div class="nbadge '+np.ac+'">'+np.dur+'s</div><div class="next-txt"><strong style="color:#e2e8f0">'+phase.nLabel+'</strong><br>'+phase.nHint+'</div></div>';
+  el.innerHTML='<div class="cur-card'+cc+'"><div class="card-hdr"><div class="cbadge'+cc+'">'+phase.dur+'s</div><div class="ctitle">'+phase.label+'</div><div class="cnow'+cc+'">Đang thực hiện</div></div><ul class="cbullets">'+phase.bullets.map(function(b){return'<li>'+b+'</li>'}).join('')+'</ul></div>'+nextHtml;
+}
+
+function applyPhase(phase){
+  var pn=document.getElementById('pname');pn.className='phase-name '+phase.cls;pn.textContent=phase.label;
+  document.getElementById('ptip').textContent=phase.tip;
+  document.getElementById('ctag').textContent=phase.label;
+  var ct=document.getElementById('ctime');
+  ct.style.color=phase.cls==='pi'?'#7fc8e8':phase.cls==='ph'?'#a78bfa':'#6ee7b7';
+  document.getElementById('center').classList.remove('idle');
+  document.getElementById('glowBg').style.background=phase.id==='inhale'?'radial-gradient(circle,rgba(127,200,232,.2) 0%,transparent 70%)':phase.id==='hold'?'radial-gradient(circle,rgba(167,139,250,.2) 0%,transparent 70%)':'radial-gradient(circle,rgba(110,231,183,.18) 0%,transparent 70%)';
+  // mark rings: active one full, later ones ready (full), earlier ones spent (empty)
+  updateRings(phase.id,1);
+  renderCards(phase,true);
+}
+function runPhase(){
+  if(!running)return;
+  var phase=phases[phaseIdx];secsLeft=phase.dur;applyPhase(phase);
+  document.getElementById('ctime').textContent=secsLeft;clearInterval(ticker);
+  var total=phase.dur;
+  ticker=setInterval(function(){
+    if(!running){clearInterval(ticker);return}
+    secsLeft--;var v=Math.max(0,secsLeft);
+    document.getElementById('ctime').textContent=v;
+    updateRings(phase.id,v/total);
+    if(secsLeft<=0){clearInterval(ticker);nextPhase()}
+  },1000);
+}
+function nextPhase(){
+  phaseIdx++;
+  if(phaseIdx>=phases.length){
+    phaseIdx=0;cycle++;syncDots();
+    if(cycle>=totalCycles){finish();return}
+    // Flash all rings full immediately
+    initCycleRings();
+    var countdown=waitSecs;
+    var pn=document.getElementById('pname');pn.className='phase-name pm';pn.textContent='Chu kỳ '+(cycle+1);
+    document.getElementById('ptip').textContent='Chuẩn bị cho chu kỳ tiếp theo...';
+    document.getElementById('ctime').style.color='#fff';
+    document.getElementById('ctime').textContent=countdown;
+    document.getElementById('ctag').textContent='chuẩn bị';
+    document.getElementById('center').classList.add('idle');
+    document.getElementById('stepCards').innerHTML=idleCard();
+    ticker=setInterval(function(){
+      if(!running){clearInterval(ticker);return}
+      countdown--;
+      document.getElementById('ctime').textContent=countdown;
+      if(countdown<=0){
+        clearInterval(ticker);
+        document.getElementById('center').classList.remove('idle');
+        runPhase();
+      }
+    },1000);
+    return;
+  }
+  runPhase();
+}
+
+function toggle(){
+  if(running)doPause();
+  else if(cycle>0||phaseIdx>0||secsLeft>0)doResume();
+  else doStart();
+}
+function doStart(){
+  running=true;document.getElementById('compMsg').classList.remove('show');
+  document.getElementById('startBtn').innerHTML='&#9208; Tạm dừng';
+  document.getElementById('resetBtn').disabled=false;
+  document.getElementById('fab').classList.add('show');document.getElementById('fab').innerHTML='&#9208;';
+  document.getElementById('timerWrap').classList.add('show');
+  initCycleRings();  // all rings start full & bright
+  startClock();startMotivate();runPhase();syncDots();
+}
+function doPause(){
+  running=false;clearInterval(ticker);pauseClock();
+  document.getElementById('startBtn').innerHTML='&#9654; Tiếp tục';
+  document.getElementById('fab').innerHTML='&#9654;';
+  document.getElementById('center').classList.add('idle');
+  document.getElementById('ctime').style.color='#fff';
+  var pn=document.getElementById('pname');pn.className='phase-name pm';pn.textContent='Đã tạm dừng';
+  document.getElementById('ptip').textContent='Nhấn tiếp tục để tiếp tục';
+  document.getElementById('ctag').textContent='tam dung';
+  stopMotivate();var m=document.getElementById('motivate');m.textContent='Tạm dừng — nhan tiep tuc khi sẵn sàng';m.classList.add('show');
+  document.getElementById('stepCards').innerHTML=idleCard();
+}
+function doResume(){
+  running=true;document.getElementById('startBtn').innerHTML='&#9208; Tạm dừng';document.getElementById('fab').innerHTML='&#9208;';
+  startClock();startMotivate();runPhase();syncDots();
+}
+function doReset(){
+  running=false;clearInterval(ticker);resetClock();stopMotivate();
+  cycle=0;phaseIdx=0;secsLeft=0;
+  document.getElementById('startBtn').innerHTML='&#9654; Bắt đầu';
+  document.getElementById('startBtn').onclick=toggle;
+  document.getElementById('resetBtn').disabled=true;
+  document.getElementById('fab').classList.remove('show');
+  document.getElementById('center').classList.add('idle');
+  document.getElementById('ctime').style.color='#fff';document.getElementById('ctime').textContent='\u2014';
+  document.getElementById('ctag').textContent='sẵn sàng';
+  var pn=document.getElementById('pname');pn.className='phase-name pm';pn.textContent='Nhấn bắt đầu';
+  document.getElementById('ptip').textContent='Ngồi hoặc nằm thoải mái, lưng thẳng, thả lỏng vai';
+  resetRings();document.getElementById('glowBg').style.background='radial-gradient(circle,rgba(127,200,232,.07) 0%,transparent 70%)';
+  document.getElementById('compMsg').classList.remove('show');
+  document.getElementById('stepCards').innerHTML=idleCard();
+  document.getElementById('motivate').classList.remove('show');
+  syncDots();
+}
+function finish(){
+  var t=totalSecs();running=false;clearInterval(ticker);pauseClock();stopMotivate();
+  document.getElementById('fab').classList.remove('show');
+  document.getElementById('center').classList.add('idle');
+  document.getElementById('ctime').style.color='#6ee7b7';document.getElementById('ctime').textContent='\u2713';
+  document.getElementById('ctag').textContent='✓ xong';
+  var pn=document.getElementById('pname');pn.className='phase-name pe';pn.textContent='Hoàn thành!';
+  document.getElementById('ptip').textContent='';
+  document.getElementById('startBtn').innerHTML='&#9654; Bắt đầu lai';
+  document.getElementById('startBtn').onclick=function(){applyTheme();cycle=0;phaseIdx=0;syncDots();document.getElementById('compMsg').classList.remove('show');document.getElementById('startBtn').onclick=toggle;doReset()};
+  allDone();document.getElementById('glowBg').style.background='radial-gradient(circle,rgba(110,231,183,.15) 0%,transparent 70%)';
+  document.getElementById('compIcon').textContent=rnd(COMP_ICONS);
+  document.getElementById('compTitle').textContent=rnd(COMP_TITLES);
+  document.getElementById('compTime').textContent='Tổng thời gian: '+fmtT(t);
+  document.getElementById('compQuote').textContent=rnd(QUOTES);
+  document.getElementById('motivate').classList.remove('show');
+  document.getElementById('compMsg').classList.add('show');
+  document.getElementById('stepCards').innerHTML='';syncDots();
+}
+function changeTech(key){if(running)return;techKey=key;phases=TECH[key].phases;document.getElementById('subtitle').textContent=TECH[key].subtitle;doReset()}
+function chgCycles(d){if(running)return;totalCycles=Math.max(1,Math.min(12,totalCycles+d));document.getElementById('cntVal').textContent=totalCycles;buildDots()}
+function chgWait(d){if(running)return;waitSecs=Math.max(1,Math.min(10,waitSecs+d));document.getElementById('waitVal').textContent=waitSecs}
+document.getElementById('fab').onclick=toggle;
+
+// Init
+applyTheme();buildDots();resetRings();
+document.getElementById('stepCards').innerHTML=idleCard();
+</script>
+</body>
+</html>
