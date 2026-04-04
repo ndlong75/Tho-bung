@@ -521,6 +521,8 @@ function playChime(){
 
 
 
+function toggleSound(){initAudio();sndOn=!sndOn;document.getElementById('sndToggle').className='snd-toggle'+(sndOn?' on':'');document.getElementById('sndVolWrap').className='snd-vol'+(sndOn?' show':'');document.getElementById('sndIc').textContent=sndOn?'🔊':'🔇';if(sndOn)return;else if(running){stopSound()}}
+function setVol(v){masterVol=v/100;if(masterGain&&actx){try{masterGain.gain.setValueAtTime(masterVol,actx.currentTime)}catch(e){}}}
 function rnd(a){return a[Math.floor(Math.random()*a.length)]}
 function fmtT(s){return Math.floor(s/60)+':'+((''+s%60).length<2?'0':'')+s%60}
 function totalSecs(){return sessAcc+(sessStart?Math.floor((Date.now()-sessStart)/1000):0)}
@@ -735,7 +737,7 @@ function finish(){
 function changeTech(key){if(running)return;techKey=key;phases=TECH[key].phases;document.getElementById('subtitle').textContent=TECH[key].subtitle;doReset()}
 function chgCycles(d){if(running)return;totalCycles=Math.max(1,Math.min(12,totalCycles+d));document.getElementById('cntVal').textContent=totalCycles;buildDots()}
 function chgWait(d){if(running)return;waitSecs=Math.max(1,Math.min(10,waitSecs+d));document.getElementById('waitVal').textContent=waitSecs}
-document.getElementById('fab').onclick=toggle;
+document.addEventListener('click',function(){initAudio()},{once:true});document.getElementById('fab').onclick=toggle;
 
 // Init
 applyTheme();buildDots();resetRings();
