@@ -19,6 +19,7 @@ body.t-aurora{background:radial-gradient(ellipse at 20% 40%,#0d1f2d 0%,#0b0f1a 6
 header{text-align:center;margin-bottom:4px}
 .title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,8vw,3rem);font-weight:300;letter-spacing:.05em;line-height:1.1;background:linear-gradient(135deg,var(--glow),var(--glow2),var(--glow3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .subtitle{font-size:.75rem;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-top:3px}
+.rtc{font-family:'Cormorant Garamond',serif;font-size:.82rem;letter-spacing:.08em;color:rgba(148,163,184,.55);margin-top:2px}
 .session-bar{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;margin:4px 0 2px;min-height:28px}
 .timer-wrap{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:5px 14px;opacity:0;transition:opacity .4s;pointer-events:none}
 .timer-wrap.show{opacity:1;pointer-events:all}
@@ -119,6 +120,7 @@ header{text-align:center;margin-bottom:4px}
   <header>
     <div class="title">Thở Bụng</div>
     <div class="subtitle" id="subtitle">Kỹ thuật 4 · 7 · 8</div>
+    <div class="rtc" id="rtc"></div>
   </header>
   <div class="session-bar">
     <div class="timer-wrap" id="timerWrap">
@@ -430,6 +432,18 @@ document.getElementById('fab').onclick=toggle;
 // Init
 applyTheme();buildDots();resetRings();
 document.getElementById('stepCards').innerHTML=idleCard();
+
+// Real-time clock
+var rtcEl=document.getElementById('rtc');
+var DAYS=['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'],
+    MONTHS=['01','02','03','04','05','06','07','08','09','10','11','12'];
+function tickClock(){
+  var n=new Date();
+  var d=DAYS[n.getDay()]+', '+('0'+n.getDate()).slice(-2)+'/'+MONTHS[n.getMonth()]+'/'+n.getFullYear();
+  var h=('0'+n.getHours()).slice(-2),m=('0'+n.getMinutes()).slice(-2),s=('0'+n.getSeconds()).slice(-2);
+  rtcEl.textContent=d+' — '+h+':'+m+':'+s;
+}
+tickClock();setInterval(tickClock,1000);
 </script>
 </body>
 </html>
