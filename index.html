@@ -233,48 +233,293 @@ var RINGS={inhale:{elId:'rInhale',c:791.7},hold:{elId:'rHold',c:603.2},exhale:{e
 var techKey='478',phases=TECH['478'].phases,totalCycles=4,waitSecs=4,cycle=0,phaseIdx=0,secsLeft=0,running=false,ticker=null;
 var sessStart=null,sessAcc=0,sessTick=null,motiveTick=null,motiveArr=[],motiveIdx=0;
 
-/* ===== Web Audio sound ===== */
-var actx=null,sndOn=false,vol=0.5,sndOsc=null,sndGain=null,sndLfo=null,sndLfoGain=null;
-var SND={
-  inhale:{freq:174,freqEnd:261,type:'sine',lfoFreq:0.15,lfoAmount:8,
-          label:'Nhẹ nhàng nâng lên, như bình minh'},
-  hold:  {freq:174,freqEnd:155,type:'triangle',lfoFreq:0.08,lfoAmount:4,
-          label:'Trầm lắng, sâu và yên tĩnh'},
-  exhale:{freq:155,freqEnd:130,type:'sine',lfoFreq:0.2,lfoAmount:12,
-          label:'Giải tỏa, lan toả nhẹ nhàng'}
-};
-function ensureAudio(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume()}
-function startSnd(phaseId,phaseDur){
-  ensureAudio();stopSnd();if(!sndOn)return;
-  var s=SND[phaseId];if(!s)return;
-  actx.close().catch(function(){});actx=new(window.AudioContext||window.webkitAudioContext)();
-  sndOsc=actx.createOscillator();sndGain=actx.createGain();
-  sndLfo=actx.createOscillator();sndLfoGain=actx.createGain();
-  sndOsc.type=s.type;sndOsc.frequency.setValueAtTime(s.freq,actx.currentTime);
-  sndOsc.frequency.linearRampToValueAtTime(s.freqEnd,actx.currentTime+(s.dur||phaseDur||4));
-  sndLfo.frequency.value=s.lfoFreq;sndLfoGain.gain.value=s.lfoAmount;
-  sndLfo.connect(sndLfoGain);sndLfoGain.connect(sndOsc.frequency);
-  sndOsc.connect(sndGain);sndGain.gain.setValueAtTime(0,actx.currentTime);
-  sndGain.gain.linearRampToValueAtTime(vol*0.15,actx.currentTime+0.3);
-  sndGain.connect(actx.destination);sndOsc.start();sndLfo.start();
+/* ===== Professional Web Audio Sound Engine ===== */
+var actx=null,sndOn=false,masterVol=0.5;
+var compNode=null,revGain=null,masterGain=null,convolver=null;
+var activeNodes={osc:[],gains:[],noise:null,noiseGain:null,lfo:null,lfoGain:null};
+var soundState='idle'; // idle | inhale | hold | exhale
+
+function initAudio(){
+  if(actx)return actx;
+  actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended')actx.resume();
+
+  // Compressor for smoothness
+  compNode=actx.createDynamicsCompressor();
+  compNode.threshold.value=-24;
+  compNode.knee.value=30;
+  compNode.ratio.value=12;
+  compNode.attack.value=0.003;
+  compNode.release.value=0.25;
+
+  // Convolution reverb (T60 ~2.5s, wet gain ~0.3)
+  convolver=actx.createConvolver();
+  var sr=actx.sampleRate,len=Math.floor(sr*2.5);
+  var impBuf=actx.createBuffer(2,len,sr);
+  for(var ch=0;ch<2;ch++){
+    var d=impBuf.getChannelData(ch);
+    for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-3.5*i/sr);
+  }
+  convolver.buffer=impBuf;
+
+  revGain=actx.createGain();
+  revGain.gain.value=0.3;
+
+  masterGain=actx.createGain();
+  masterGain.gain.value=masterVol;
+
+  // Routing: compNode -> [masterGain (dry), convolver->revGain (wet)] -> destination
+  compNode.connect(masterGain);
+  compNode.connect(convolver);
+  convolver.connect(revGain);
+  revGain.connect(masterGain);
+  masterGain.connect(actx.destination);
+
+  return actx;
 }
-function fadeSnd(){
-  if(!sndGain||!actx)return;
-  var t=actx.currentTime;sndGain.gain.cancelScheduledValues(t);
-  sndGain.gain.setValueAtTime(sndGain.gain.value,t);
-  sndGain.gain.linearRampToValueAtTime(0,t+0.3);
+
+function stopAllActive(){
+  var t=actx?actx.currentTime:0;
+  activeNodes.gains.forEach(function(g){try{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(0,t)}catch(e){}});
+  activeNodes.osc.forEach(function(o){try{o.stop()}catch(e){}});
+  if(activeNodes.lfo) try{activeNodes.lfo.stop()}catch(e){}
+  if(activeNodes.noise) try{activeNodes.noise.stop()}catch(e){}
+  activeNodes={osc:[],gains:[],noise:null,noiseGain:null,lfo:null,lfoGain:null};
 }
-function stopSnd(){
-  try{if(sndOsc)sndOsc.stop();if(sndLfo)sndLfo.stop();}catch(e){}sndOsc=null;sndLfo=null;sndGain=null;
+
+function createNoiseBuffer(dur){
+  var ac=actx,len=Math.floor(ac.sampleRate*dur);
+  var buf=ac.createBuffer(1,len,ac.sampleRate);
+  var d=buf.getChannelData(0);
+  var lastOut=0;
+  for(var i=0;i<len;i++){
+    var w=Math.random()*2-1;
+    lastOut=(lastOut+(0.02*w))/1.02;
+    d[i]=lastOut*3.5;
+  }
+  return buf;
 }
-function toggleSound(){
-  sndOn=!sndOn;
-  document.getElementById('sndToggle').className='snd-toggle'+(sndOn?' on':'');
-  document.getElementById('sndVolWrap').className='snd-vol'+(sndOn?' show':'');
-  document.getElementById('sndIc').textContent=sndOn?'🔊':'🔇';
-  if(sndOn)ensureAudio();else if(running){fadeSnd();setTimeout(stopSnd,400)}
+
+function startSound(phaseId,phaseDur){
+  if(!sndOn){soundState='idle';return;}
+  var ac=initAudio();
+  if(ac.state==='suspended')ac.resume();
+  stopAllActive();
+  soundState=phaseId;
+
+  var now=ac.currentTime;
+  var root=130.81; // C3
+
+  if(phaseId==='inhale'){
+    // Warm pad rising: C3, F3, G3, C4 - sweep up 5%
+    var freqs=[root,174.61,196.00,261.63];
+    var attack=0.5, peakGain=0.09;
+    freqs.forEach(function(f,i){
+      var o=ac.createOscillator();
+      var g=ac.createGain();
+      o.type='sine';
+      o.frequency.value=f;
+      o.frequency.linearRampToValueAtTime(f*1.05,now+phaseDur*0.9);
+      o.detune.value=(i-1.5)*8;
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(peakGain*(1-i*0.12),now+attack+i*0.08);
+      o.connect(g);
+      g.connect(compNode);
+      o.start(now);
+      o.stop(now+phaseDur+0.5);
+      activeNodes.osc.push(o);
+      activeNodes.gains.push(g);
+    });
+
+    // Breath noise: fades in then out
+    var ns=ac.createBufferSource();
+    ns.buffer=createNoiseBuffer(phaseDur);
+    var ng=ac.createGain();
+    var nf=ac.createBiquadFilter();
+    nf.type='lowpass';
+    nf.frequency.value=400;
+    nf.Q.value=1;
+    ng.gain.setValueAtTime(0,now);
+    ng.gain.linearRampToValueAtTime(0.06,now+phaseDur*0.3);
+    ng.gain.linearRampToValueAtTime(0.01,now+phaseDur*0.85);
+    ng.gain.linearRampToValueAtTime(0,now+phaseDur);
+    ns.connect(nf);nf.connect(ng);ng.connect(compNode);
+    ns.start(now);ns.stop(now+phaseDur+0.1);
+    activeNodes.noise=ns;activeNodes.noiseGain=ng;
+
+  } else if(phaseId==='hold'){
+    // Deep sustained drone: C3 with tiny vibrato (0.1Hz LFO)
+    var dur=phaseDur;
+
+    // Main drone
+    var o1=ac.createOscillator();
+    var g1=ac.createGain();
+    o1.type='sine';o1.frequency.value=root;
+    g1.gain.setValueAtTime(0,now);
+    g1.gain.linearRampToValueAtTime(0.1,now+0.6);
+    g1.gain.setValueAtTime(0.1,now+dur*0.7);
+    g1.gain.linearRampToValueAtTime(0.08,now+dur);
+
+    // Sub-octave drone (very subtle)
+    var o2=ac.createOscillator();
+    var g2=ac.createGain();
+    o2.type='sine';o2.frequency.value=root*0.5;
+    g2.gain.setValueAtTime(0,now);
+    g2.gain.linearRampToValueAtTime(0.05,now+0.8);
+
+    // Gentle tremolo LFO
+    var lfo=ac.createOscillator();
+    var lfoG=ac.createGain();
+    lfo.frequency.value=0.1;lfoG.gain.value=3;
+    lfo.connect(lfoG);lfoG.connect(o1.frequency);lfoG.connect(o2.frequency);
+
+    // Fifth harmonic pad
+    var o3=ac.createOscillator(),g3=ac.createGain();
+    o3.type='sine';o3.frequency.value=root*1.5;
+    g3.gain.setValueAtTime(0,now);
+    g3.gain.linearRampToValueAtTime(0.03,now+1);
+
+    o1.connect(g1);o2.connect(g2);o3.connect(g3);
+    g1.connect(compNode);g2.connect(compNode);g3.connect(compNode);
+    [o1,o2,o3].forEach(function(o){o.start(now);o.stop(now+dur+0.5);activeNodes.osc.push(o);});
+    [g1,g2,g3].forEach(function(g){activeNodes.gains.push(g);});
+    activeNodes.lfo=lfo;activeNodes.lfoGain=lfoG;
+    lfo.start(now);lfo.stop(now+dur+0.5);
+
+    // Very subtle breath noise
+    var ns=ac.createBufferSource();
+    ns.buffer=createNoiseBuffer(dur);
+    var ng=ac.createGain();
+    var nf=ac.createBiquadFilter();
+    nf.type='lowpass';nf.frequency.value=250;nf.Q.value=0.5;
+    ng.gain.setValueAtTime(0.008,now);
+    ng.gain.linearRampToValueAtTime(0.012,now+dur*0.4);
+    ng.gain.linearRampToValueAtTime(0.006,now+dur);
+    ns.connect(nf);nf.connect(ng);ng.connect(compNode);
+    ns.start(now);ns.stop(now+dur+0.1);
+    activeNodes.noise=ns;activeNodes.noiseGain=ng;
+
+  } else if(phaseId==='exhale'){
+    // Pad descending: C3, F3, A3 -> sweep down to C3, Bb2, Ab2, G2
+    var startFreqs=[root,174.61,220.00];
+    var endFreqs=[root,116.54,103.83,98.00]; // G2 added
+    var attack=0.6, peakGain=0.08;
+
+    // Descending voices
+    startFreqs.forEach(function(f,i){
+      var o=ac.createOscillator();
+      var g=ac.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(f,now);
+      var target=endFreqs[i] || endFreqs[endFreqs.length-1];
+      o.frequency.linearRampToValueAtTime(target,now+phaseDur*0.85);
+      o.detune.value=(i-1)*6;
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(peakGain*(1-i*0.15),now+attack+i*0.1);
+      g.gain.setValueAtTime(peakGain*(1-i*0.15),now+phaseDur*0.7);
+      g.gain.linearRampToValueAtTime(0.02,now+phaseDur);
+      o.connect(g);g.connect(compNode);
+      o.start(now);o.stop(now+phaseDur+0.5);
+      activeNodes.osc.push(o);activeNodes.gains.push(g);
+    });
+
+    // Extra low voice entering late
+    var o4=ac.createOscillator(),g4=ac.createGain();
+    o4.type='sine';o4.frequency.value=endFreqs[3];
+    g4.gain.setValueAtTime(0,now);
+    g4.gain.setValueAtTime(0,now+phaseDur*0.4);
+    g4.gain.linearRampToValueAtTime(0.04,now+phaseDur*0.6);
+    g4.gain.setValueAtTime(0.04,now+phaseDur*0.75);
+    g4.gain.linearRampToValueAtTime(0.01,now+phaseDur);
+    o4.connect(g4);g4.connect(compNode);
+    o4.start(now);o4.stop(now+phaseDur+0.5);
+    activeNodes.osc.push(o4);activeNodes.gains.push(g4);
+
+    // Breath noise: fades out
+    var ns=ac.createBufferSource();
+    ns.buffer=createNoiseBuffer(phaseDur);
+    var ng=ac.createGain();
+    var nf=ac.createBiquadFilter();
+    nf.type='lowpass';nf.frequency.value=350;nf.Q.value=0.7;
+    ng.gain.setValueAtTime(0.05,now);
+    ng.gain.linearRampToValueAtTime(0.03,now+phaseDur*0.5);
+    ng.gain.linearRampToValueAtTime(0,now+phaseDur);
+    ns.connect(nf);nf.connect(ng);ng.connect(compNode);
+    ns.start(now);ns.stop(now+phaseDur+0.1);
+    activeNodes.noise=ns;activeNodes.noiseGain=ng;
+  }
 }
-function setVol(v){vol=v/100;if(sndGain&&sndOsc&&actx)try{sndGain.gain.setValueAtTime(vol*0.15,actx.currentTime)}catch(e){}}
+
+function stopSound(){
+  if(!actx)return;
+  var t=actx.currentTime;
+  activeNodes.gains.forEach(function(g){
+    try{
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(g.gain.value,t);
+      g.gain.linearRampToValueAtTime(0,t+0.5);
+    }catch(e){}
+  });
+  setTimeout(function(){stopAllActive()},600);
+  soundState='idle';
+}
+
+function transitionToHold(){
+  stopAllActive();
+  soundState='hold';
+  var ac=actx,now=ac.currentTime;
+  var root=130.81;
+
+  var o1=ac.createOscillator(),g1=ac.createGain();
+  o1.type='sine';o1.frequency.value=root;
+  g1.gain.setValueAtTime(0,now);
+  g1.gain.linearRampToValueAtTime(0.1,now+0.8);
+
+  var o2=ac.createOscillator(),g2=ac.createGain();
+  o2.type='sine';o2.frequency.value=root*0.5;
+  g2.gain.setValueAtTime(0,now);
+  g2.gain.linearRampToValueAtTime(0.05,now+1);
+
+  var lfo=ac.createOscillator(),lfoG=ac.createGain();
+  lfo.frequency.value=0.1;lfoG.gain.value=3;
+  lfo.connect(lfoG);lfoG.connect(o1.frequency);lfoG.connect(o2.frequency);
+
+  o1.connect(g1);o2.connect(g2);
+  g1.connect(compNode);g2.connect(compNode);
+  [o1,o2].forEach(function(o){o.start(now);activeNodes.osc.push(o);});
+  [g1,g2].forEach(function(g){activeNodes.gains.push(g);});
+  activeNodes.lfo=lfo;activeNodes.lfoGain=lfoG;
+  lfo.start(now);
+}
+
+function playChime(){
+  if(!sndOn)return;
+  var ac=initAudio();
+  if(ac.state==='suspended')ac.resume();
+  var now=ac.currentTime;
+
+  // Bell partials with proper inharmonic ratios
+  var partials=[
+    {freq:523.25,gain:0.18,decay:4.0},   // C5 fundamental
+    {freq:1443.6,gain:0.06,decay:2.5},    // 2.76x bell partial
+    {freq:2128.4,gain:0.04,decay:1.8},    // 4.07x
+    {freq:2825.5,gain:0.03,decay:1.3},    // 5.4x
+    {freq:3636.9,gain:0.02,decay:0.9},    // 6.95x
+    {freq:1046.5,gain:0.08,decay:3.2},    // C6 octave
+    {freq:783.99,gain:0.07,decay:3.5},    // G5 fifth
+  ];
+
+  partials.forEach(function(p){
+    var o=ac.createOscillator(),g=ac.createGain();
+    o.type='sine';o.frequency.value=p.freq;
+    g.gain.setValueAtTime(p.gain*masterVol,now);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+p.decay);
+    o.connect(g);g.connect(compNode);
+    o.start(now);o.stop(now+p.decay+0.1);
+  });
+}
+
+
 
 function rnd(a){return a[Math.floor(Math.random()*a.length)]}
 function fmtT(s){return Math.floor(s/60)+':'+((''+s%60).length<2?'0':'')+s%60}
@@ -379,7 +624,7 @@ function applyPhase(phase){
 }
 function runPhase(){
   if(!running)return;
-  var phase=phases[phaseIdx];secsLeft=phase.dur;applyPhase(phase);startSnd(phase.id,phase.dur);
+  var phase=phases[phaseIdx];secsLeft=phase.dur;applyPhase(phase);startSound(phase.id,phase.dur);
   document.getElementById('ctime').textContent=secsLeft;clearInterval(ticker);
   var total=phase.dur;
   ticker=setInterval(function(){
@@ -443,7 +688,7 @@ function doPause(){
   var pn=document.getElementById('pname');pn.className='phase-name pm';pn.textContent='Đã tạm dừng';
   document.getElementById('ptip').textContent='Nhấn tiếp tục để tiếp tục';
   document.getElementById('ctag').textContent='tam dung';
-  stopMotivate();fadeSnd();var m=document.getElementById('motivate');m.textContent='Tạm dừng — nhan tiep tuc khi sẵn sàng';m.classList.add('show');
+  stopMotivate();stopSound();var m=document.getElementById('motivate');m.textContent='Tạm dừng — nhan tiep tuc khi sẵn sàng';m.classList.add('show');
   document.getElementById('stepCards').innerHTML=idleCard();
 }
 function doResume(){
@@ -451,7 +696,7 @@ function doResume(){
   startClock();startMotivate();runPhase();syncDots();
 }
 function doReset(){
-  running=false;clearInterval(ticker);resetClock();stopMotivate();stopSnd();
+  running=false;clearInterval(ticker);resetClock();stopMotivate();stopSound();
   cycle=0;phaseIdx=0;secsLeft=0;
   document.getElementById('startBtn').innerHTML='&#9654; Bắt đầu';
   document.getElementById('startBtn').onclick=toggle;
@@ -469,7 +714,7 @@ function doReset(){
   syncDots();
 }
 function finish(){
-  var t=totalSecs();running=false;clearInterval(ticker);pauseClock();stopMotivate();fadeSnd();if(sndOn)playChime();
+  var t=totalSecs();running=false;clearInterval(ticker);pauseClock();stopMotivate();stopSound();if(sndOn)playChime();
   document.getElementById('fab').classList.remove('show');
   document.getElementById('center').classList.add('idle');
   document.getElementById('ctime').style.color='#6ee7b7';document.getElementById('ctime').textContent='\u2713';
@@ -496,22 +741,7 @@ document.getElementById('fab').onclick=toggle;
 applyTheme();buildDots();resetRings();
 document.getElementById('stepCards').innerHTML=idleCard();
 
-function ensureAudioCtx(){
-  if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();
-  return actx;
-}
-function playChime(){
-  var ac=ensureAudioCtx();if(!ac)return;
-  var now=ac.currentTime;
-  [523.25,659.25,783.99].forEach(function(f,i){
-    var o=ac.createOscillator(),g=ac.createGain();
-    o.type='sine';o.frequency.value=f;
-    g.gain.setValueAtTime(vol*0.2,now+i*0.2);
-    g.gain.linearRampToValueAtTime(0,now+i*0.2+0.25);
-    o.connect(g);g.connect(ac.destination);
-    o.start(now+i*0.2);o.stop(now+i*0.2+0.25);
-  });
-}
+// playChime moved to sound engine above
 
 // Real-time clock
 var rtcEl=document.getElementById('rtc');
